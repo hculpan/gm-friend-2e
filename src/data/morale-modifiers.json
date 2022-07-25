@@ -1,0 +1,122 @@
+[
+  {
+    "id": "abandoned",
+    "modifier": -6,
+    "description": "Abandoned by friends"
+  },
+  {
+    "id": "lost25",
+    "modifier": -2,
+    "description": "Creature/group lost 25%"
+  },
+  {
+    "id": "lost50",
+    "modifier": -4,
+    "description": "Creature/group lost 50%"
+  },
+  {
+    "id": "chaotic",
+    "modifier": -1,
+    "description": "Creature is chaotic"
+  },
+  {
+    "id": "hatedEnemy",
+    "modifier": 4,
+    "description": "Fighting a Hated enemy"
+  },
+  {
+    "id": "lawful",
+    "modifier": 1,
+    "description": "Creature is lawful"
+  },
+  {
+    "id": "surprised",
+    "modifier": -2,
+    "description": "Surprised"
+  },
+  {
+    "id": "fightingWizards",
+    "modifier": -2,
+    "description": "Fighting wizards/magic-using foes"
+  },
+  {
+    "id": "halfHitDice",
+    "modifier": -2,
+    "description": "Creatures 1/2 HD or less"
+  },
+  {
+    "id": "oneHitDie",
+    "modifier": -1,
+    "description": "Creatures 1/2 HD+ but less than 1 HD"
+  },
+  {
+    "id": "eightHitDice",
+    "modifier": 1,
+    "description": "Creatures 4 to 8+ HD"
+  },
+  {
+    "id": "fourteenHitDice",
+    "modifier": 2,
+    "description": "Creatures 9 to 14+ HD"
+  },
+  {
+    "id": "fifteenHitDice",
+    "modifier": 3,
+    "description": "Creatures 15 or more HD"
+  },
+  {
+    "id": "defendingHome",
+    "modifier": 3,
+    "description": "Defending home"
+  },
+  {
+    "id": "defensiveTerrain",
+    "modifier": 1,
+    "description": "Defensive terrain"
+  },
+  {
+    "id": "leaderAlignment",
+    "modifier": -1,
+    "description": "Leader is of different alignment"
+  },
+  {
+    "id": "powerfulAlly",
+    "modifier": -4,
+    "description": "Most powerful ally killed"
+  },
+  {
+    "id": "favoredNpc",
+    "modifier": 2,
+    "description": "NPC has been favored"
+  },
+  {
+    "id": "poorlyTreated",
+    "modifier": -4,
+    "description": "NPC has been poorly treated"
+  },
+  {
+    "id": "noneSlain",
+    "modifier": -2,
+    "description": "No enemy slain"
+  },
+  {
+    "id": "opponentsOutnumber",
+    "modifier": 2,
+    "description": "Enemies outnumber party 3 to 1"
+  },
+  {
+    "id": "opponentsOutnumbered",
+    "modifier": -4,
+    "description": "Party outnumber enemies 3 to 1"
+  },
+  {
+    "id": "unableToAffect",
+    "modifier": -8,
+    "description": "Unable to affect opponent"
+  },
+  {
+    "id": "wizardOnSide",
+    "modifier": 2,
+    "description": "Wizard/magic-using creature ally"
+  }
+]

@@ -1,0 +1,14 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /monsters/{monsterId} {
+      allow read, write: if request.auth != null;
+    }
+    match /npcs/{npcId} {
+      allow read, write: if request.auth != null;
+    }
+    match /locations/{locationsId} {
+      allow read, write: if request.auth != null;
+    }
+  }
+}
