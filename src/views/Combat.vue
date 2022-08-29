@@ -99,7 +99,7 @@
           class="form-control number-input me-2"
           @change="initiativeChanged"
         />
-        <button class="btn btn-primary me-5" @click="applyInit" :disabled="!fightInProgress">Apply Init</button>
+        <button class="btn btn-primary me-5" @click="applyInit" :disabled="!fightInProgress">Init Mod</button>
       </div>
 
       <div class="next-round container">
@@ -142,7 +142,7 @@
             </select>
 
             <button class="btn btn-primary" @click="setAction" :disabled="!fightInProgress">
-              Apply
+              Action
             </button>
           </div>
           <div class="col">
