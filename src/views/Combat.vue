@@ -115,6 +115,7 @@
               <option value="full_move">Full Move</option>
               <option value="move_attack">Move and Attack</option>
               <option value="charge">Charge</option>
+              <option value="set-for-charge">Set for Charge</option>
               <option value="parry">Parrying</option>
               <option value="ready">Ready Attack</option>
               <option value="ready_no_attack">Ready Non-Attack</option>
