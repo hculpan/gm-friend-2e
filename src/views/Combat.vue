@@ -8,29 +8,6 @@
   <div v-if="!error && monsters.length">
     <div class="add-monsters">
       <div class="fight-actions">
-        <!--        <div class="form-check form-switch" style="display: inline"> -->
-        <label class="form-label pe-2" for="flexSwitchCheckDefault">Max HP</label>
-        <input
-          class="form-control form-check-input form-check me-4"
-          type="checkbox"
-          id="flexSwitchCheckDefault"
-          style="width: 50px; height: 30px"
-          v-model="rollMax"
-          @change="rollMaxChanged"
-        />
-        <!--        </div> -->
-
-        <label class="form-label pe-2">How many?</label>
-        <input
-          type="number"
-          name="count"
-          id="count"
-          min="1"
-          max="100"
-          class="form-control number-input"
-          v-model="count"
-        />
-
         <label class="form-label ps-4">Monster</label>
         <router-link :to="{ name: 'Monster Search' }" class="text-light">
           <span class="material-icons search">
@@ -49,7 +26,10 @@
           </option>
         </select>
 
-        <button class="btn btn-primary me-5" @click="addToFight">Add to Fight</button>
+        <!--<button class="btn btn-primary me-5" @click="addToFight">Add to Fight</button>-->
+        <button class="btn btn-primary me-5" data-bs-target="#addToFightModal" data-bs-toggle="modal">
+          Add to Fight
+        </button>
         <button class="btn btn-primary me-2" @click="startFight" :disabled="fightInProgress">
           Start Fight
         </button>
@@ -99,7 +79,10 @@
           class="form-control number-input me-2"
           @change="initiativeChanged"
         />
-        <button class="btn btn-primary me-5" @click="applyInit" :disabled="!fightInProgress">Init Mod</button>
+        <button class="btn btn-primary me-1" @click="applyInit" :disabled="!fightInProgress">Init Mod</button>
+        <a data-bs-toggle="offcanvas" href="#offcanvasExample-initmod" role="button" aria-controls="offcanvasExample"
+          ><i class="bi bi-info-circle"></i
+        ></a>
       </div>
 
       <div class="next-round container">
@@ -207,6 +190,9 @@
     </div>
   </div>
 
+  <!-- Add to Fight modal -->
+  <AddToFight :monster="findMonster(selectedMonster)" @to-add="(a) => addMonster(a)" />
+
   <!-- Reactions info sidebar -->
   <div
     class="offcanvas offcanvas-end"
@@ -239,6 +225,9 @@
       <p class="text-start off-row">Completely surrounded</p>
     </div>
   </div>
+
+  <!-- Init modifiers info sidebar -->
+  <InitModifiers></InitModifiers>
 </template>
 
 <script>
@@ -249,12 +238,13 @@ import { onMounted, onUnmounted } from "@vue/runtime-core";
 import calcFinalInitiative from "../composables/calcFinalInitiative";
 import Morale from "../components/Morale.vue";
 import XpDisplay from "../components/XpDisplay.vue";
+import InitModifiers from "../components/InitModifiers.vue";
+import AddToFight from "../components/AddToFight.vue";
 
 export default {
   name: "Home",
-  components: { MonsterEntry, Morale, XpDisplay },
+  components: { MonsterEntry, Morale, XpDisplay, InitModifiers, AddToFight },
   setup() {
-    const count = ref("1");
     const selectedMonster = ref("");
     const monstersInFight = ref([]);
     const fightInProgress = ref(false);
@@ -265,8 +255,6 @@ export default {
     const currentRound = ref(0);
     const baseInitiative = ref(1);
     const groupInit = ref(0);
-
-    const rollMax = ref(true);
 
     let uniqueId = 0;
 
@@ -357,13 +345,6 @@ export default {
       if (data) {
         selectedMonster.value = data;
         sessionStorage.removeItem("selectedMonster");
-      }
-
-      data = localStorage.getItem("rollMax");
-      if (data) {
-        rollMax.value = data === "true";
-      } else {
-        rollMax.value = true;
       }
     });
 
@@ -488,6 +469,38 @@ export default {
       return result + 1;
     };
 
+    const addMonster = (a) => {
+      if (!a) return;
+
+      let protoMonster = a.protoMonster;
+      let parsedHitDice = parseHitDice(protoMonster.hit_dice);
+      let count = a.count;
+      let rollMax = a.rollMax;
+
+      let nextId = getNextFightId(protoMonster.id);
+      for (let i = 0; i < count; i++) {
+        let hp = protoMonster.hit_points;
+        if (!hp) {
+          hp = rollHitDice(parsedHitDice, rollMax);
+        }
+        let monsterToAdd = {
+          ...protoMonster,
+          maxHitPoints: hp,
+          currentHitPoints: hp,
+          inFight: true,
+          fightId: nextId++,
+          uniqueId: uniqueId++,
+          selected: false,
+          action: "no_action",
+          initiative: 0,
+          initModifier: calculateNaturalInitModifier(protoMonster.size),
+          finalInitiative: 0,
+        };
+
+        monstersInFight.value.push(monsterToAdd);
+      }
+    };
+
     const addToFight = () => {
       if (!selectedMonster.value) return;
 
@@ -520,7 +533,6 @@ export default {
     };
 
     return {
-      count,
       monsters,
       selectedMonster,
       monstersInFight,
@@ -535,7 +547,6 @@ export default {
       currentRound,
       baseInitiative,
       groupInit,
-      rollMax,
       orderByInit,
       applyInit,
       initiativeChanged,
@@ -550,58 +561,60 @@ export default {
       startFight,
       endFight,
       rollMaxChanged,
+      findMonster,
+      addMonster,
     };
+
+    function parseHitDice(hitDice) {
+      var result = {
+        numDice: 0,
+        modifier: 0,
+      };
+
+      if (hitDice.trim() === "1/4") {
+        result.numDice = 0.25;
+      } else if (hitDice.trim() === "1/2") {
+        result.numDice = 0.5;
+      } else if (hitDice.indexOf("+") > -1) {
+        var str = hitDice.split("+");
+        result.numDice = parseInt(str[0]);
+        result.modifier = parseInt(str[1]);
+      } else if (hitDice.indexOf("-") > -1) {
+        var str = hitDice.split("-");
+        result.numDice = parseInt(str[0]);
+        result.modifier = parseInt(str[1]) * -1;
+      } else {
+        result.numDice = parseInt(hitDice);
+      }
+
+      return result;
+    }
+
+    function rollHitDice(dice, rollMaxAtFirst) {
+      var hp = 1;
+      if (dice.numDice < 1) {
+        if (rollMaxAtFirst) {
+          hp = Math.floor(dice.numDice * 8) + dice.modifier;
+        } else {
+          hp = Math.floor((Math.random() * 8 + 1) * dice.numDice) + dice.modifier;
+        }
+      } else {
+        hp = rollBaseHitDice(dice.numDice, rollMaxAtFirst) + dice.modifier;
+      }
+
+      return hp < 1 ? 1 : hp;
+    }
+
+    function rollBaseHitDice(count, rollMaxAtFirst) {
+      var result = 0;
+      for (var i = 0; i < count; i++) {
+        if (i == 0 && rollMaxAtFirst) result += 8;
+        else result += Math.floor(Math.random() * 8 + 1);
+      }
+      return result;
+    }
   },
 };
-
-function parseHitDice(hitDice) {
-  var result = {
-    numDice: 0,
-    modifier: 0,
-  };
-
-  if (hitDice.trim() === "1/4") {
-    result.numDice = 0.25;
-  } else if (hitDice.trim() === "1/2") {
-    result.numDice = 0.5;
-  } else if (hitDice.indexOf("+") > -1) {
-    var str = hitDice.split("+");
-    result.numDice = parseInt(str[0]);
-    result.modifier = parseInt(str[1]);
-  } else if (hitDice.indexOf("-") > -1) {
-    var str = hitDice.split("-");
-    result.numDice = parseInt(str[0]);
-    result.modifier = parseInt(str[1]) * -1;
-  } else {
-    result.numDice = parseInt(hitDice);
-  }
-
-  return result;
-}
-
-function rollHitDice(dice, rollMaxAtFirst) {
-  var hp = 1;
-  if (dice.numDice < 1) {
-    if (rollMaxAtFirst) {
-      hp = Math.floor(dice.numDice * 8) + dice.modifier;
-    } else {
-      hp = Math.floor((Math.random() * 8 + 1) * dice.numDice) + dice.modifier;
-    }
-  } else {
-    hp = rollBaseHitDice(dice.numDice, rollMaxAtFirst) + dice.modifier;
-  }
-
-  return hp < 1 ? 1 : hp;
-}
-
-function rollBaseHitDice(count, rollMaxAtFirst) {
-  var result = 0;
-  for (var i = 0; i < count; i++) {
-    if (i == 0 && rollMaxAtFirst) result += 8;
-    else result += Math.floor(Math.random() * 8 + 1);
-  }
-  return result;
-}
 </script>
 
 <style scoped>

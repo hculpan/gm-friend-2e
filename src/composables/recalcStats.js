@@ -1,4 +1,6 @@
 const recalcAc = (text) => {
+  if (text == undefined) return "";
+
   let result = text;
   let matches = text.match(/-?(\d+)/g);
   if (matches) {
@@ -11,6 +13,8 @@ const recalcAc = (text) => {
 };
 
 const recalcThac0 = (text) => {
+  if (text == undefined) return "";
+
   let result = text;
   let matches = text.match(/(\d+)/g);
   if (matches) {
