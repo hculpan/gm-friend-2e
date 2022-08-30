@@ -7,36 +7,52 @@
   </div>
   <div v-if="!error && monsters.length">
     <div class="add-monsters">
-      <div class="fight-actions">
-        <label class="form-label ps-4">Monster</label>
-        <router-link :to="{ name: 'Monster Search' }" class="text-light">
-          <span class="material-icons search">
-            search
-          </span>
-        </router-link>
-        <select
-          name="selectedMonster"
-          id="selectedMonster"
-          class="form-control me-2"
-          v-model="selectedMonster"
-          style="max-width: 10em;"
-        >
-          <option v-for="monster in monsters" :key="monster.id" :value="monster.id">
-            {{ monster.name }}
-          </option>
-        </select>
+      <div class="fight-actions container">
+        <div class="row">
+          <div class="col-4 text-start">
+            <label class="form-label pt-1">Encounter</label>
+            <input class="ms-1" type="text" style="max-width: 150px" v-model="encounterName" />
+            <button class="btn btn-primary ms-1" @click="saveEncounter">
+              Save
+            </button>
+            <button class="btn btn-primary ms-1" data-bs-target="#encounterManagerModal" data-bs-toggle="modal">
+              Load
+            </button>
+          </div>
+          <div class="col-4">
+            <label class="form-label">Monster</label>
+            <router-link :to="{ name: 'Monster Search' }" class="text-light">
+              <span class="material-icons search">
+                search
+              </span>
+            </router-link>
+            <select
+              name="selectedMonster"
+              id="selectedMonster"
+              class="form-control me-1 pt-1"
+              v-model="selectedMonster"
+              style="max-width: 10em;"
+            >
+              <option v-for="monster in monsters" :key="monster.id" :value="monster.id">
+                {{ monster.name }}
+              </option>
+            </select>
+            <button class="btn btn-primary" data-bs-target="#addToFightModal" data-bs-toggle="modal">
+              Add to Fight
+            </button>
+          </div>
 
-        <!--<button class="btn btn-primary me-5" @click="addToFight">Add to Fight</button>-->
-        <button class="btn btn-primary me-5" data-bs-target="#addToFightModal" data-bs-toggle="modal">
-          Add to Fight
-        </button>
-        <button class="btn btn-primary me-2" @click="startFight" :disabled="fightInProgress">
-          Start Fight
-        </button>
-        <button class="btn btn-primary me-2" @click="endFight" :disabled="!fightInProgress">End Fight</button>
-        <button class="btn btn-primary me-2" @click="resetFight" :disabled="fightInProgress">
-          Reset Fight
-        </button>
+          <!--<button class="btn btn-primary me-5" @click="addToFight">Add to Fight</button>-->
+          <div class="col-4">
+            <button class="btn btn-primary me-1" @click="startFight" :disabled="fightInProgress">
+              Start Fight
+            </button>
+            <button class="btn btn-primary me-1" @click="endFight" :disabled="!fightInProgress">End Fight</button>
+            <button class="btn btn-primary" @click="resetFight" :disabled="fightInProgress">
+              Reset Fight
+            </button>
+          </div>
+        </div>
       </div>
 
       <div class="creature-actions">
@@ -194,6 +210,8 @@
   <!-- Add to Fight modal -->
   <AddToFight :monster="findMonster(selectedMonster)" @to-add="(a) => addMonster(a)" />
 
+  <EncounterManager />
+
   <!-- Reactions info sidebar -->
   <div
     class="offcanvas offcanvas-end"
@@ -241,10 +259,11 @@ import Morale from "../components/Morale.vue";
 import XpDisplay from "../components/XpDisplay.vue";
 import InitModifiers from "../components/InitModifiers.vue";
 import AddToFight from "../components/AddToFight.vue";
+import EncounterManager from "../components/EncounterManager.vue";
 
 export default {
   name: "Home",
-  components: { MonsterEntry, Morale, XpDisplay, InitModifiers, AddToFight },
+  components: { MonsterEntry, Morale, XpDisplay, InitModifiers, AddToFight, EncounterManager },
   setup() {
     const selectedMonster = ref("");
     const monstersInFight = ref([]);
@@ -257,7 +276,25 @@ export default {
     const baseInitiative = ref(1);
     const groupInit = ref(0);
 
+    const encounterName = ref("");
+
     let uniqueId = 0;
+
+    const saveEncounter = () => {
+      if (!encounterName.value && monstersInFight.value.length > 0) return;
+
+      localStorage.setItem("encounter-" + encounterName.value, JSON.stringify(monstersInFight.value));
+      localStorage.setItem("currentEncounter", encounterName.value);
+      console.log(encounterName.value);
+    };
+
+    const loadEncounter = () => {
+      for (var key in localStorage) {
+        if (key.startsWith("encounter-")) {
+          console.log(key);
+        }
+      }
+    };
 
     const rollMaxChanged = () => {
       localStorage.setItem("rollMax", rollMax.value);
@@ -307,6 +344,10 @@ export default {
       localStorage.setItem("showAllMonsters", showAllMonsters.value.toString());
       localStorage.setItem("currentRound", currentRound.value.toString());
       localStorage.setItem("init", baseInitiative.value.toString());
+
+      if (encounterName) {
+        localStorage.setItem("currentEncounter", encounterName.value);
+      }
     };
 
     onUnmounted(() => {
@@ -324,6 +365,7 @@ export default {
         monstersInFight.value = JSON.parse(data);
       }
 
+      encounterName.value = localStorage.getItem("currentEncounter");
       fightInProgress.value = localStorage.getItem("fightInProgress") == "true";
       showAllMonsters.value = localStorage.getItem("showAllMonsters") == "true";
       data = parseInt(localStorage.getItem("currentRound"));
@@ -548,6 +590,9 @@ export default {
       currentRound,
       baseInitiative,
       groupInit,
+      encounterName,
+      saveEncounter,
+      loadEncounter,
       orderByInit,
       applyInit,
       initiativeChanged,
