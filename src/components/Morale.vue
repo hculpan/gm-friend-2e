@@ -13,8 +13,8 @@
       <div class="row d-flex justify-content-center">
         <div class="col-5">
           <select name="creatureType" id="creatureType" v-model="moraleSelected" @change="moraleChanged">
-            <option v-for="m in extraMoraleSlots" :key="m" :value="m.value">{{ m.name }}</option
-            ><option value="3">Animal, normal and peaceful (3)</option>
+            <option v-for="m in extraMoraleSlots" :key="m" :value="m.value">{{ m.name }}</option>
+            <option value="3">Animal, normal and peaceful (3)</option>
             <option value="7">Animal, normal predator (7)</option>
             <option value="7">Average 0-level human (7)</option>
             <option value="9">Mobs (9)</option>
@@ -124,9 +124,9 @@ export default {
       let result = [];
       let numbers = morale.match(/\d+/g);
 
-      if (numbers.length == 1) {
+      if (numbers && numbers.length == 1) {
         result.push(parseInt(numbers[0]));
-      } else if (numbers.length == 2) {
+      } else if (numbers && numbers.length == 2) {
         let start = parseInt(numbers[0]);
         let end = parseInt(numbers[1]);
         for (let i = start; i <= end; i++) {

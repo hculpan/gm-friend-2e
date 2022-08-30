@@ -12,9 +12,7 @@
           <div class="col-4 text-start">
             <label class="form-label pt-1">Encounter</label>
             <input class="ms-1" type="text" style="max-width: 150px" v-model="encounterName" />
-            <button class="btn btn-primary ms-1" @click="saveEncounter">
-              Save
-            </button>
+            <button class="btn btn-primary ms-1" @click="saveEncounter">Save</button>
             <button class="btn btn-primary ms-1" data-bs-target="#encounterManagerModal" data-bs-toggle="modal">
               Load
             </button>
@@ -22,16 +20,14 @@
           <div class="col-4">
             <label class="form-label">Monster</label>
             <router-link :to="{ name: 'Monster Search' }" class="text-light">
-              <span class="material-icons search">
-                search
-              </span>
+              <span class="material-icons search"> search </span>
             </router-link>
             <select
               name="selectedMonster"
               id="selectedMonster"
               class="form-control me-1 pt-1"
               v-model="selectedMonster"
-              style="max-width: 10em;"
+              style="max-width: 10em"
             >
               <option v-for="monster in monsters" :key="monster.id" :value="monster.id">
                 {{ monster.name }}
@@ -44,13 +40,9 @@
 
           <!--<button class="btn btn-primary me-5" @click="addToFight">Add to Fight</button>-->
           <div class="col-4">
-            <button class="btn btn-primary me-1" @click="startFight" :disabled="fightInProgress">
-              Start Fight
-            </button>
+            <button class="btn btn-primary me-1" @click="startFight" :disabled="fightInProgress">Start Fight</button>
             <button class="btn btn-primary me-1" @click="endFight" :disabled="!fightInProgress">End Fight</button>
-            <button class="btn btn-primary" @click="resetFight" :disabled="fightInProgress">
-              Reset Fight
-            </button>
+            <button class="btn btn-primary" @click="resetFight" :disabled="fightInProgress">Reset Fight</button>
           </div>
         </div>
       </div>
@@ -65,12 +57,8 @@
           :disabled="!fightInProgress"
           class="form-control number-input me-2"
         />
-        <button class="btn btn-primary me-2" @click="doDamage(1)" :disabled="!fightInProgress">
-          Full Damage
-        </button>
-        <button class="btn btn-primary me-2" @click="doDamage(0.5)" :disabled="!fightInProgress">
-          Half Damage
-        </button>
+        <button class="btn btn-primary me-2" @click="doDamage(1)" :disabled="!fightInProgress">Full Damage</button>
+        <button class="btn btn-primary me-2" @click="doDamage(0.5)" :disabled="!fightInProgress">Half Damage</button>
         <button class="btn btn-primary me-5" @click="doDamage(-1)" :disabled="!fightInProgress">Heal</button>
 
         <label class="form-label ps-4 pe-2">Init Roll</label>
@@ -105,7 +93,7 @@
         <div class="row mt-2 vcenter">
           <button class="col btn btn-primary col-1 me-2" @click="showAll">{{ buttonText }}</button>
           <button class="btn btn-primary col-1" data-bs-target="#xpModal" data-bs-toggle="modal">XP</button>
-          <div class="col-4" style="text-align: center; vertical-align: middle;">
+          <div class="col-4" style="text-align: center; vertical-align: middle">
             <label v-if="currentRound !== 0" class="form-label me-2">Current Round: {{ currentRound }}</label>
             <label v-else class="form-label me-2">Round not started</label>
             <button
@@ -141,9 +129,7 @@
               <option value="other">Other full-round action</option>
             </select>
 
-            <button class="btn btn-primary" @click="setAction" :disabled="!fightInProgress">
-              Action
-            </button>
+            <button class="btn btn-primary" @click="setAction" :disabled="!fightInProgress">Action</button>
           </div>
           <div class="col">
             <button class="col btn btn-primary" @click="orderByInit">Order</button>
@@ -174,7 +160,7 @@
   <div class="modal" id="xpModal">
     <div class="modal-dialog modal-dialog-centered modal-md">
       <div class="modal-content">
-        <div class="modal-header" style="text-align: center;">
+        <div class="modal-header" style="text-align: center">
           <h2 class="modal-title black-text">Encounter XP</h2>
           <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
         </div>
@@ -210,7 +196,7 @@
   <!-- Add to Fight modal -->
   <AddToFight :monster="findMonster(selectedMonster)" @to-add="(a) => addMonster(a)" />
 
-  <EncounterManager />
+  <EncounterManager @load-encounter="(e) => loadEncounter(e)" />
 
   <!-- Reactions info sidebar -->
   <div
@@ -280,19 +266,26 @@ export default {
 
     let uniqueId = 0;
 
+    const resetFight = () => {
+      monstersInFight.value = [];
+      encounterName.value = "";
+      currentRound.value = 1;
+      fightInProgress.value = false;
+    };
+
     const saveEncounter = () => {
       if (!encounterName.value && monstersInFight.value.length > 0) return;
 
       localStorage.setItem("encounter-" + encounterName.value, JSON.stringify(monstersInFight.value));
       localStorage.setItem("currentEncounter", encounterName.value);
-      console.log(encounterName.value);
     };
 
-    const loadEncounter = () => {
-      for (var key in localStorage) {
-        if (key.startsWith("encounter-")) {
-          console.log(key);
-        }
+    const loadEncounter = (e) => {
+      resetFight();
+      let data = localStorage.getItem("encounter-" + e);
+      if (data) {
+        monstersInFight.value = JSON.parse(data);
+        encounterName.value = e;
       }
     };
 
@@ -569,10 +562,6 @@ export default {
 
         monstersInFight.value.push(monsterToAdd);
       }
-    };
-
-    const resetFight = () => {
-      monstersInFight.value = [];
     };
 
     return {
