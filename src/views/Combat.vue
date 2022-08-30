@@ -457,11 +457,11 @@ export default {
       return 0;
     };
 
-    const getNextFightId = (id) => {
+    const getNextFightId = (name) => {
       let result = 0;
 
       for (let i = 0; i < monstersInFight.value.length; i++) {
-        if (monstersInFight.value[i].id == id && monstersInFight.value[i].fightId > result) {
+        if (monstersInFight.value[i].name == name && monstersInFight.value[i].fightId > result) {
           result = monstersInFight.value[i].fightId;
         }
       }
@@ -477,7 +477,7 @@ export default {
       let count = a.count;
       let rollMax = a.rollMax;
 
-      let nextId = getNextFightId(protoMonster.id);
+      let nextId = getNextFightId(protoMonster.name);
       for (let i = 0; i < count; i++) {
         let hp = protoMonster.hit_points;
         if (!hp) {

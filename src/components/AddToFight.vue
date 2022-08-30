@@ -203,7 +203,7 @@
 
 <script setup>
 import { ref, watch } from "vue";
-import { onMounted, onUnmounted } from "@vue/runtime-core";
+import { onMounted } from "@vue/runtime-core";
 import { recalcAc, recalcThac0 } from "../composables/recalcStats";
 import { ok } from "assert";
 
