@@ -9,9 +9,7 @@
         <div class="modal-body">
           <div class="container text-dark">
             <div class="row mb-1">
-              <div class="col-3 text-end me-2">
-                How many?
-              </div>
+              <div class="col-3 text-end me-2">How many?</div>
               <input
                 type="number"
                 name="count"
@@ -222,7 +220,6 @@ watch(props, (currentValue, oldValue) => {
 });
 
 const okClicked = () => {
-  console.log("ok hit");
   let a = {
     count: count.value,
     maxHp: rollMax.value,

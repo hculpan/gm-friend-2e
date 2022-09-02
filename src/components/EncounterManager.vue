@@ -35,15 +35,7 @@
           >
             Load
           </button>
-          <button
-            type="button"
-            class="btn btn-danger"
-            data-bs-dismiss="modal"
-            style="width: 100px"
-            @click="deleteClicked"
-          >
-            Delete
-          </button>
+          <button type="button" class="btn btn-danger" style="width: 100px" @click="deleteClicked">Delete</button>
           <button
             type="button"
             class="btn btn-primary"

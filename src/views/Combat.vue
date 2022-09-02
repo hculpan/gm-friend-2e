@@ -196,7 +196,7 @@
   <!-- Add to Fight modal -->
   <AddToFight :monster="findMonster(selectedMonster)" @to-add="(a) => addMonster(a)" />
 
-  <EncounterManager @load-encounter="(e) => loadEncounter(e)" />
+  <EncounterManager :key="forceRender" @load-encounter="(e) => loadEncounter(e)" />
 
   <!-- Reactions info sidebar -->
   <div
@@ -235,7 +235,7 @@
   <InitModifiers></InitModifiers>
 </template>
 
-<script>
+<script setup>
 import { ref, computed } from "vue";
 import MonsterEntry from "../components/MonsterEntry";
 import getMonsters from "../composables/getMonsters";
@@ -247,409 +247,397 @@ import InitModifiers from "../components/InitModifiers.vue";
 import AddToFight from "../components/AddToFight.vue";
 import EncounterManager from "../components/EncounterManager.vue";
 
-export default {
-  name: "Home",
-  components: { MonsterEntry, Morale, XpDisplay, InitModifiers, AddToFight, EncounterManager },
-  setup() {
-    const selectedMonster = ref("");
-    const monstersInFight = ref([]);
-    const fightInProgress = ref(false);
-    const showAllMonsters = ref(false);
-    const forceRender = ref(0);
-    const damageAmount = ref(0);
-    const actionTaken = ref("no_action");
-    const currentRound = ref(0);
-    const baseInitiative = ref(1);
-    const groupInit = ref(0);
+const selectedMonster = ref("");
+const monstersInFight = ref([]);
+const fightInProgress = ref(false);
+const showAllMonsters = ref(false);
+const forceRender = ref(0);
+const damageAmount = ref(0);
+const actionTaken = ref("no_action");
+const currentRound = ref(0);
+const baseInitiative = ref(1);
+const groupInit = ref(0);
 
-    const encounterName = ref("");
+const encounterName = ref("");
 
-    let uniqueId = 0;
+let uniqueId = 0;
 
-    const resetFight = () => {
-      monstersInFight.value = [];
-      encounterName.value = "";
-      currentRound.value = 1;
-      fightInProgress.value = false;
-    };
-
-    const saveEncounter = () => {
-      if (!encounterName.value && monstersInFight.value.length > 0) return;
-
-      localStorage.setItem("encounter-" + encounterName.value, JSON.stringify(monstersInFight.value));
-      localStorage.setItem("currentEncounter", encounterName.value);
-    };
-
-    const loadEncounter = (e) => {
-      resetFight();
-      let data = localStorage.getItem("encounter-" + e);
-      if (data) {
-        monstersInFight.value = JSON.parse(data);
-        encounterName.value = e;
-      }
-    };
-
-    const rollMaxChanged = () => {
-      localStorage.setItem("rollMax", rollMax.value);
-    };
-
-    const applyInit = () => {
-      for (let i = 0; i < monstersInFight.value.length; i++) {
-        let monster = monstersInFight.value[i];
-        if (monster.selected) {
-          monster.initModifier = groupInit.value;
-          monster.finalInitiative = monster.initiative + monster.initModifier;
-          monster.selected = false;
-        }
-      }
-      rerender();
-    };
-
-    const orderByInit = () => {
-      monstersInFight.value = monstersInFight.value.sort((m1, m2) => m1.finalInitiative - m2.finalInitiative);
-      rerender();
-    };
-
-    const monstersToDisplay = computed(() => {
-      return monstersInFight.value.filter((monster) => {
-        return showAllMonsters.value || monster.inFight;
-      });
-    });
-
-    const buttonText = computed(() => {
-      if (showAllMonsters.value) {
-        return "Hide";
-      }
-      return "Show";
-    });
-
-    const showAll = () => {
-      showAllMonsters.value = !showAllMonsters.value;
-    };
-
-    const storeWindowState = () => {
-      for (let i = 0; i < monstersInFight.value.length; i++) {
-        monstersInFight.value[i].selected = false;
-      }
-
-      localStorage.setItem("monsterInFight", JSON.stringify(monstersInFight.value));
-      localStorage.setItem("fightInProgress", fightInProgress.value.toString());
-      localStorage.setItem("showAllMonsters", showAllMonsters.value.toString());
-      localStorage.setItem("currentRound", currentRound.value.toString());
-      localStorage.setItem("init", baseInitiative.value.toString());
-
-      if (encounterName) {
-        localStorage.setItem("currentEncounter", encounterName.value);
-      }
-    };
-
-    onUnmounted(() => {
-      storeWindowState();
-
-      window.removeEventListener("beforeunload", storeWindowState);
-    });
-
-    const { monsters, error, load } = getMonsters();
-    load();
-
-    onMounted(() => {
-      let data = localStorage.getItem("monsterInFight");
-      if (data) {
-        monstersInFight.value = JSON.parse(data);
-      }
-
-      encounterName.value = localStorage.getItem("currentEncounter");
-      fightInProgress.value = localStorage.getItem("fightInProgress") == "true";
-      showAllMonsters.value = localStorage.getItem("showAllMonsters") == "true";
-      data = parseInt(localStorage.getItem("currentRound"));
-      if (data) {
-        currentRound.value = data;
-      }
-      data = parseInt(localStorage.getItem("init"));
-      if (data) {
-        baseInitiative.value = data;
-      }
-
-      for (let i = 0; i < monstersInFight.value.length; i++) {
-        monstersInFight.value[i].initiative = baseInitiative.value;
-        monstersInFight.value[i].finalInitiative = calcFinalInitiative(monstersInFight.value[i]);
-      }
-
-      window.addEventListener("beforeunload", storeWindowState);
-
-      data = sessionStorage.getItem("selectedMonster");
-      if (data) {
-        selectedMonster.value = data;
-        sessionStorage.removeItem("selectedMonster");
-      }
-    });
-
-    const newRound = () => {
-      currentRound.value++;
-      monstersInFight.value = monstersInFight.value.sort((m1, m2) => m1.uniqueId - m2.uniqueId);
-      for (let i = 0; i < monstersInFight.value.length; i++) {
-        let monster = monstersInFight.value[i];
-        monster.action = "no_action";
-        monster.selected = false;
-        actionTaken.value = "no_action";
-        baseInitiative.value = 1;
-        rerender();
-      }
-    };
-
-    const startFight = () => {
-      fightInProgress.value = true;
-      currentRound.value = 1;
-    };
-
-    const endFight = () => {
-      fightInProgress.value = false;
-      currentRound.value = 0;
-    };
-
-    const setAction = () => {
-      for (let i = 0; i < monstersInFight.value.length; i++) {
-        let monster = monstersInFight.value[i];
-        if (monster.selected) {
-          monster.action = actionTaken.value;
-          monster.selected = false;
-        }
-      }
-      rerender();
-    };
-
-    const doDamage = (multiplier) => {
-      for (let i = 0; i < monstersInFight.value.length; i++) {
-        let monster = monstersInFight.value[i];
-        if (monster.selected) {
-          monster.currentHitPoints -= Math.floor(damageAmount.value * multiplier);
-          if (monster.currentHitPoints > monster.maxHitPoints) monster.currentHitPoints = monster.maxHitPoints;
-          if (monster.currentHitPoints < 0) monster.currentHitPoints = 0;
-          monster.selected = false;
-
-          if (!monster.inFight && monster.currentHitPoints > 0) {
-            monster.inFight = true;
-          }
-
-          rerender();
-        }
-      }
-    };
-
-    const rerender = () => {
-      forceRender.value++;
-    };
-
-    const deleteFromFight = (id) => {
-      let index = -1;
-      for (let i = 0; i < monstersInFight.value.length; i++) {
-        if (monstersInFight.value[i].uniqueId == id) {
-          index = i;
-          break;
-        }
-      }
-
-      if (index > -1) {
-        if (fightInProgress.value) {
-          monstersInFight.value[index].inFight = !monstersInFight.value[index].inFight;
-          monstersInFight.value[index].selected = false;
-        } else {
-          monstersInFight.value.splice(index, 1);
-        }
-      }
-
-      rerender();
-    };
-
-    const initiativeChanged = () => {
-      for (let i = 0; i < monstersInFight.value.length; i++) {
-        if (monstersInFight.value[i].inFight) {
-          monstersInFight.value[i].initiative = baseInitiative;
-        }
-      }
-    };
-
-    const findMonster = (id) => {
-      for (let i = 0; i < monsters.value.length; i++) {
-        if (monsters.value[i].id === id) {
-          return { ...monsters.value[i] };
-        }
-      }
-
-      return null;
-    };
-
-    const calculateNaturalInitModifier = (size) => {
-      if (size.startsWith("S") || size.startsWith("M")) {
-        return 3;
-      } else if (size.startsWith("L")) {
-        return 6;
-      } else if (size.startsWith("H")) {
-        return 9;
-      } else if (size.startsWith("G")) {
-        return 12;
-      }
-
-      return 0;
-    };
-
-    const getNextFightId = (name) => {
-      let result = 0;
-
-      for (let i = 0; i < monstersInFight.value.length; i++) {
-        if (monstersInFight.value[i].name == name && monstersInFight.value[i].fightId > result) {
-          result = monstersInFight.value[i].fightId;
-        }
-      }
-
-      return result + 1;
-    };
-
-    const addMonster = (a) => {
-      if (!a) return;
-
-      let protoMonster = a.protoMonster;
-      let parsedHitDice = parseHitDice(protoMonster.hit_dice);
-      let count = a.count;
-      let rollMax = a.rollMax;
-
-      let nextId = getNextFightId(protoMonster.name);
-      for (let i = 0; i < count; i++) {
-        let hp = protoMonster.hit_points;
-        if (!hp) {
-          hp = rollHitDice(parsedHitDice, rollMax);
-        }
-        let monsterToAdd = {
-          ...protoMonster,
-          maxHitPoints: hp,
-          currentHitPoints: hp,
-          inFight: true,
-          fightId: nextId++,
-          uniqueId: uniqueId++,
-          selected: false,
-          action: "no_action",
-          initiative: 0,
-          initModifier: calculateNaturalInitModifier(protoMonster.size),
-          finalInitiative: 0,
-        };
-
-        monstersInFight.value.push(monsterToAdd);
-      }
-    };
-
-    const addToFight = () => {
-      if (!selectedMonster.value) return;
-
-      let protoMonster = findMonster(selectedMonster.value);
-      let parsedHitDice = parseHitDice(protoMonster.hit_dice);
-
-      let nextId = getNextFightId(protoMonster.id);
-      for (let i = 0; i < count.value; i++) {
-        let hp = rollHitDice(parsedHitDice, rollMax.value);
-        let monsterToAdd = {
-          ...protoMonster,
-          maxHitPoints: hp,
-          currentHitPoints: hp,
-          inFight: true,
-          fightId: nextId++,
-          uniqueId: uniqueId++,
-          selected: false,
-          action: "no_action",
-          initiative: 0,
-          initModifier: calculateNaturalInitModifier(protoMonster.size),
-          finalInitiative: 0,
-        };
-
-        monstersInFight.value.push(monsterToAdd);
-      }
-    };
-
-    return {
-      monsters,
-      selectedMonster,
-      monstersInFight,
-      error,
-      fightInProgress,
-      monstersToDisplay,
-      showAllMonsters,
-      buttonText,
-      forceRender,
-      damageAmount,
-      actionTaken,
-      currentRound,
-      baseInitiative,
-      groupInit,
-      encounterName,
-      saveEncounter,
-      loadEncounter,
-      orderByInit,
-      applyInit,
-      initiativeChanged,
-      addToFight,
-      resetFight,
-      deleteFromFight,
-      showAll,
-      rerender,
-      doDamage,
-      setAction,
-      newRound,
-      startFight,
-      endFight,
-      rollMaxChanged,
-      findMonster,
-      addMonster,
-    };
-
-    function parseHitDice(hitDice) {
-      var result = {
-        numDice: 0,
-        modifier: 0,
-      };
-
-      if (hitDice.trim() === "1/4") {
-        result.numDice = 0.25;
-      } else if (hitDice.trim() === "1/2") {
-        result.numDice = 0.5;
-      } else if (hitDice.indexOf("+") > -1) {
-        var str = hitDice.split("+");
-        result.numDice = parseInt(str[0]);
-        result.modifier = parseInt(str[1]);
-      } else if (hitDice.indexOf("-") > -1) {
-        var str = hitDice.split("-");
-        result.numDice = parseInt(str[0]);
-        result.modifier = parseInt(str[1]) * -1;
-      } else {
-        result.numDice = parseInt(hitDice);
-      }
-
-      return result;
-    }
-
-    function rollHitDice(dice, rollMaxAtFirst) {
-      var hp = 1;
-      if (dice.numDice < 1) {
-        if (rollMaxAtFirst) {
-          hp = Math.floor(dice.numDice * 8) + dice.modifier;
-        } else {
-          hp = Math.floor((Math.random() * 8 + 1) * dice.numDice) + dice.modifier;
-        }
-      } else {
-        hp = rollBaseHitDice(dice.numDice, rollMaxAtFirst) + dice.modifier;
-      }
-
-      return hp < 1 ? 1 : hp;
-    }
-
-    function rollBaseHitDice(count, rollMaxAtFirst) {
-      var result = 0;
-      for (var i = 0; i < count; i++) {
-        if (i == 0 && rollMaxAtFirst) result += 8;
-        else result += Math.floor(Math.random() * 8 + 1);
-      }
-      return result;
-    }
-  },
+const resetFight = () => {
+  monstersInFight.value = [];
+  encounterName.value = "";
+  currentRound.value = 1;
+  fightInProgress.value = false;
 };
+
+const saveEncounter = () => {
+  if (!encounterName.value && monstersInFight.value.length > 0) return;
+
+  localStorage.setItem("encounter-" + encounterName.value, JSON.stringify(monstersInFight.value));
+  localStorage.setItem("currentEncounter", encounterName.value);
+
+  rerender();
+};
+
+const loadEncounter = (e) => {
+  resetFight();
+  let data = localStorage.getItem("encounter-" + e);
+  if (data) {
+    monstersInFight.value = JSON.parse(data);
+    encounterName.value = e;
+  }
+};
+
+const applyInit = () => {
+  for (let i = 0; i < monstersInFight.value.length; i++) {
+    let monster = monstersInFight.value[i];
+    if (monster.selected) {
+      monster.initModifier = groupInit.value;
+      monster.finalInitiative = monster.initiative + monster.initModifier;
+      monster.selected = false;
+    }
+  }
+  rerender();
+};
+
+const orderByInit = () => {
+  monstersInFight.value = monstersInFight.value.sort((m1, m2) => m1.finalInitiative - m2.finalInitiative);
+  rerender();
+};
+
+const monstersToDisplay = computed(() => {
+  return monstersInFight.value.filter((monster) => {
+    return showAllMonsters.value || monster.inFight;
+  });
+});
+
+const buttonText = computed(() => {
+  if (showAllMonsters.value) {
+    return "Hide";
+  }
+  return "Show";
+});
+
+const showAll = () => {
+  showAllMonsters.value = !showAllMonsters.value;
+};
+
+const storeWindowState = () => {
+  for (let i = 0; i < monstersInFight.value.length; i++) {
+    monstersInFight.value[i].selected = false;
+  }
+
+  localStorage.setItem("monsterInFight", JSON.stringify(monstersInFight.value));
+  localStorage.setItem("fightInProgress", fightInProgress.value.toString());
+  localStorage.setItem("showAllMonsters", showAllMonsters.value.toString());
+  localStorage.setItem("currentRound", currentRound.value.toString());
+  localStorage.setItem("init", baseInitiative.value.toString());
+
+  if (encounterName) {
+    localStorage.setItem("currentEncounter", encounterName.value);
+  }
+};
+
+onUnmounted(() => {
+  storeWindowState();
+
+  window.removeEventListener("beforeunload", storeWindowState);
+});
+
+const { monsters, error, load } = getMonsters();
+load();
+
+onMounted(() => {
+  let data = localStorage.getItem("monsterInFight");
+  if (data) {
+    monstersInFight.value = JSON.parse(data);
+  }
+
+  encounterName.value = localStorage.getItem("currentEncounter");
+  fightInProgress.value = localStorage.getItem("fightInProgress") == "true";
+  showAllMonsters.value = localStorage.getItem("showAllMonsters") == "true";
+  data = parseInt(localStorage.getItem("currentRound"));
+  if (data) {
+    currentRound.value = data;
+  }
+  data = parseInt(localStorage.getItem("init"));
+  if (data) {
+    baseInitiative.value = data;
+  }
+
+  for (let i = 0; i < monstersInFight.value.length; i++) {
+    monstersInFight.value[i].initiative = baseInitiative.value;
+    monstersInFight.value[i].finalInitiative = calcFinalInitiative(monstersInFight.value[i]);
+  }
+
+  window.addEventListener("beforeunload", storeWindowState);
+
+  data = sessionStorage.getItem("selectedMonster");
+  if (data) {
+    selectedMonster.value = data;
+    sessionStorage.removeItem("selectedMonster");
+  }
+});
+
+const newRound = () => {
+  currentRound.value++;
+  monstersInFight.value = monstersInFight.value.sort((m1, m2) => m1.uniqueId - m2.uniqueId);
+  for (let i = 0; i < monstersInFight.value.length; i++) {
+    let monster = monstersInFight.value[i];
+    monster.action = "no_action";
+    monster.selected = false;
+    actionTaken.value = "no_action";
+    baseInitiative.value = 1;
+    rerender();
+  }
+};
+
+const startFight = () => {
+  fightInProgress.value = true;
+  currentRound.value = 1;
+};
+
+const endFight = () => {
+  fightInProgress.value = false;
+  currentRound.value = 0;
+};
+
+const setAction = () => {
+  for (let i = 0; i < monstersInFight.value.length; i++) {
+    let monster = monstersInFight.value[i];
+    if (monster.selected) {
+      monster.action = actionTaken.value;
+      monster.selected = false;
+    }
+  }
+  rerender();
+};
+
+const doDamage = (multiplier) => {
+  for (let i = 0; i < monstersInFight.value.length; i++) {
+    let monster = monstersInFight.value[i];
+    if (monster.selected) {
+      monster.currentHitPoints -= Math.floor(damageAmount.value * multiplier);
+      if (monster.currentHitPoints > monster.maxHitPoints) monster.currentHitPoints = monster.maxHitPoints;
+      if (monster.currentHitPoints < 0) monster.currentHitPoints = 0;
+      monster.selected = false;
+
+      if (!monster.inFight && monster.currentHitPoints > 0) {
+        monster.inFight = true;
+      }
+
+      rerender();
+    }
+  }
+};
+
+const rerender = () => {
+  forceRender.value++;
+};
+
+const deleteFromFight = (id) => {
+  let index = -1;
+  for (let i = 0; i < monstersInFight.value.length; i++) {
+    if (monstersInFight.value[i].uniqueId == id) {
+      index = i;
+      break;
+    }
+  }
+
+  if (index > -1) {
+    if (fightInProgress.value) {
+      monstersInFight.value[index].inFight = !monstersInFight.value[index].inFight;
+      monstersInFight.value[index].selected = false;
+    } else {
+      monstersInFight.value.splice(index, 1);
+    }
+  }
+
+  rerender();
+};
+
+const initiativeChanged = () => {
+  for (let i = 0; i < monstersInFight.value.length; i++) {
+    if (monstersInFight.value[i].inFight) {
+      monstersInFight.value[i].initiative = baseInitiative;
+    }
+  }
+};
+
+const findMonster = (id) => {
+  for (let i = 0; i < monsters.value.length; i++) {
+    if (monsters.value[i].id === id) {
+      return { ...monsters.value[i] };
+    }
+  }
+
+  return null;
+};
+
+const calculateNaturalInitModifier = (size) => {
+  if (size.startsWith("S") || size.startsWith("M")) {
+    return 3;
+  } else if (size.startsWith("L")) {
+    return 6;
+  } else if (size.startsWith("H")) {
+    return 9;
+  } else if (size.startsWith("G")) {
+    return 12;
+  }
+
+  return 0;
+};
+
+const getNextFightId = (name) => {
+  let result = 0;
+
+  for (let i = 0; i < monstersInFight.value.length; i++) {
+    if (monstersInFight.value[i].name == name && monstersInFight.value[i].fightId > result) {
+      result = monstersInFight.value[i].fightId;
+    }
+  }
+
+  return result + 1;
+};
+
+const addMonster = (a) => {
+  if (!a) return;
+
+  let protoMonster = a.protoMonster;
+  let parsedHitDice = parseHitDice(protoMonster.hit_dice);
+  let count = a.count;
+  let rollMax = a.maxHp;
+
+  let nextId = getNextFightId(protoMonster.name);
+  for (let i = 0; i < count; i++) {
+    let hp = protoMonster.hit_points;
+    if (!hp) {
+      hp = rollHitDice(parsedHitDice, rollMax);
+    }
+    let monsterToAdd = {
+      ...protoMonster,
+      maxHitPoints: hp,
+      currentHitPoints: hp,
+      inFight: true,
+      fightId: nextId++,
+      uniqueId: uniqueId++,
+      selected: false,
+      action: "no_action",
+      initiative: 0,
+      initModifier: calculateNaturalInitModifier(protoMonster.size),
+      finalInitiative: 0,
+    };
+
+    monstersInFight.value.push(monsterToAdd);
+  }
+};
+
+const addToFight = () => {
+  if (!selectedMonster.value) return;
+
+  let protoMonster = findMonster(selectedMonster.value);
+  let parsedHitDice = parseHitDice(protoMonster.hit_dice);
+
+  let nextId = getNextFightId(protoMonster.id);
+  for (let i = 0; i < count.value; i++) {
+    let hp = rollHitDice(parsedHitDice, rollMax.value);
+    let monsterToAdd = {
+      ...protoMonster,
+      maxHitPoints: hp,
+      currentHitPoints: hp,
+      inFight: true,
+      fightId: nextId++,
+      uniqueId: uniqueId++,
+      selected: false,
+      action: "no_action",
+      initiative: 0,
+      initModifier: calculateNaturalInitModifier(protoMonster.size),
+      finalInitiative: 0,
+    };
+
+    monstersInFight.value.push(monsterToAdd);
+  }
+};
+
+function parseHitDice(hitDice) {
+  var result = {
+    numDice: 0,
+    modifier: 0,
+  };
+
+  let dice = {
+    numDice: "",
+    operator: "",
+    modifier: "",
+  };
+
+  let loc = hitDice.search("[+-]");
+  if (loc > -1) {
+    dice.numDice = hitDice.substr(0, loc).trim();
+    dice.operator = hitDice.substr(loc, 1);
+    dice.modifier = hitDice.substr(loc + 1).trim();
+  } else {
+    dice.numDice = hitDice;
+  }
+
+  if (dice.numDice === "1/4") {
+    result.numDice = 0.25;
+  } else if (dice.numDice === "1/2") {
+    result.numDice = 0.5;
+  } else {
+    result.numDice = parseInt(dice.numDice);
+  }
+
+  if (dice.operator && dice.modifier) {
+    result.modifier = parseInt(dice.modifier);
+    if (result.modifier && dice.operator === "-") {
+      result.modifier *= -1;
+    }
+  }
+  /*
+  if (hitDice.trim() === "1/4") {
+    result.numDice = 0.25;
+  } else if (hitDice.trim() === "1/2") {
+    result.numDice = 0.5;
+  } else if (hitDice.indexOf("+") > -1) {
+    var str = hitDice.split("+");
+    result.numDice = parseInt(str[0]);
+    result.modifier = parseInt(str[1]);
+  } else if (hitDice.indexOf("-") > -1) {
+    var str = hitDice.split("-");
+    result.numDice = parseInt(str[0]);
+    result.modifier = parseInt(str[1]) * -1;
+  } else {
+    result.numDice = parseInt(hitDice);
+  }*/
+
+  console.log(result);
+
+  return result;
+}
+
+function rollHitDice(dice, rollMaxAtFirst) {
+  var hp = 1;
+  if (dice.numDice < 1) {
+    if (rollMaxAtFirst) {
+      hp = Math.floor(dice.numDice * 8) + dice.modifier;
+    } else {
+      hp = Math.floor((Math.random() * 8 + 1) * dice.numDice) + dice.modifier;
+    }
+  } else {
+    hp = rollBaseHitDice(dice.numDice, rollMaxAtFirst) + dice.modifier;
+  }
+
+  return hp < 1 ? 1 : hp;
+}
+
+function rollBaseHitDice(count, rollMaxAtFirst) {
+  var result = 0;
+  for (var i = 0; i < count; i++) {
+    if (i == 0 && rollMaxAtFirst) result += 8;
+    else result += Math.floor(Math.random() * 8 + 1);
+  }
+  return result;
+}
 </script>
 
 <style scoped>
