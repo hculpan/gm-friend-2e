@@ -353,6 +353,9 @@ onMounted(() => {
   }
 
   encounterName.value = localStorage.getItem("currentEncounter");
+  if (!encounterName.value) {
+    encounterName.value = "";
+  }
   fightInProgress.value = localStorage.getItem("fightInProgress") == "true";
   showAllMonsters.value = localStorage.getItem("showAllMonsters") == "true";
   data = parseInt(localStorage.getItem("currentRound"));
@@ -593,22 +596,6 @@ function parseHitDice(hitDice) {
       result.modifier *= -1;
     }
   }
-  /*
-  if (hitDice.trim() === "1/4") {
-    result.numDice = 0.25;
-  } else if (hitDice.trim() === "1/2") {
-    result.numDice = 0.5;
-  } else if (hitDice.indexOf("+") > -1) {
-    var str = hitDice.split("+");
-    result.numDice = parseInt(str[0]);
-    result.modifier = parseInt(str[1]);
-  } else if (hitDice.indexOf("-") > -1) {
-    var str = hitDice.split("-");
-    result.numDice = parseInt(str[0]);
-    result.modifier = parseInt(str[1]) * -1;
-  } else {
-    result.numDice = parseInt(hitDice);
-  }*/
 
   console.log(result);
 
